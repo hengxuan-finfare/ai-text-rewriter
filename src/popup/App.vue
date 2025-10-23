@@ -133,8 +133,8 @@ const handleSend = async () => {
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: lightcoral;
+  background: #000000;
+  color: #ffffff;
   padding: 20px;
   text-align: center;
 }
@@ -163,7 +163,7 @@ const handleSend = async () => {
 
 .text-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #000000;
 }
 
 .text-input.input-error {
@@ -194,8 +194,8 @@ const handleSend = async () => {
 .send-button {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: #000000;
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -242,15 +242,15 @@ const handleSend = async () => {
 .response-section h2 {
   font-size: 16px;
   font-weight: 600;
-  color: #374151;
+  color: #000000;
   margin: 0;
 }
 
 .copy-button {
   padding: 6px 12px;
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #000000;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
@@ -260,23 +260,22 @@ const handleSend = async () => {
 }
 
 .copy-button:hover {
-  background: #e5e7eb;
-  border-color: #9ca3af;
+  background: #000000;
+  color: #ffffff;
 }
 
 .copy-button.copied {
-  background: #d1fae5;
-  color: #065f46;
-  border-color: #6ee7b7;
+  background: #000000;
+  color: #ffffff;
 }
 
 .response-content {
   padding: 16px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border: 1px solid #000000;
   border-radius: 8px;
   font-size: 14px;
-  color: #1f2937;
+  color: #000000;
   line-height: 1.6;
   white-space: pre-wrap;
   word-wrap: break-word;
