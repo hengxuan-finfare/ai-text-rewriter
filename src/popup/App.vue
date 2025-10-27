@@ -5,12 +5,22 @@ const inputText = ref('')
 const responseText = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
+const selectedTone = ref('professional')
 
 const SUPABASE_URL = 'https://iwinuithcugihfsgepgo.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3aW51aXRoY3VnaWhmc2dlcGdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNjczNjgsImV4cCI6MjA3Njc0MzM2OH0.NOiIBFMjYfPCGmFfVakkgggeJjte8FY7UDISTS5OhP8' // Replace with your actual anon key
 
 const MAX_LENGTH = 5000
 const MIN_LENGTH = 7
+
+const toneOptions = [
+  { value: 'formal', label: 'Formal', description: 'Very polished, official' },
+  { value: 'professional', label: 'Professional', description: 'Business-appropriate' },
+  { value: 'friendly', label: 'Friendly', description: 'Warm and approachable' },
+  { value: 'casual', label: 'Casual', description: 'Relaxed and conversational' },
+  { value: 'concise', label: 'Concise', description: 'Brief and direct' },
+  { value: 'creative', label: 'Creative', description: 'Engaging and imaginative' },
+]
 
 const characterCount = computed(() => inputText.value.length)
 const isOverLimit = computed(() => characterCount.value > MAX_LENGTH)
@@ -57,6 +67,7 @@ const handleSend = async () => {
       body: JSON.stringify({
         requestText: inputText.value,
         userId: null,
+        tone: selectedTone.value,
       }),
     })
 
@@ -90,6 +101,21 @@ const handleSend = async () => {
         {{ characterCount }} / {{ MAX_LENGTH }} characters
         <span v-if="isOverLimit"> ({{ characterCount - MAX_LENGTH }} over limit)</span>
         <span v-if="isUnderLimit"> (minimum {{ MIN_LENGTH }})</span>
+      </div>
+
+      <div class="tone-section">
+        <span class="tone-label">Tone:</span>
+        <div class="tone-options">
+          <button
+            v-for="tone in toneOptions"
+            :key="tone.value"
+            @click="selectedTone = tone.value"
+            :class="['tone-button', { 'tone-active': selectedTone === tone.value }]"
+            :title="tone.description"
+          >
+            {{ tone.label }}
+          </button>
+        </div>
       </div>
 
       <button @click="handleSend" :disabled="!inputText.trim() || isLoading || isOverLimit || isUnderLimit"
@@ -189,6 +215,48 @@ const handleSend = async () => {
 
 .character-count.count-warning {
   color: #f59e0b;
+}
+
+.tone-section {
+  margin-bottom: 16px;
+}
+
+.tone-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #000000;
+  margin-bottom: 8px;
+}
+
+.tone-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tone-button {
+  padding: 6px 12px;
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.tone-button:hover {
+  border-color: #000000;
+  background: #f9fafb;
+}
+
+.tone-button.tone-active {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
 }
 
 .send-button {
