@@ -7,6 +7,9 @@
     "activeTab",
     "storage"
   ],
+  "host_permissions": [
+    "https://iwinuithcugihfsgepgo.supabase.co/*"
+  ],
   "action": {
     "default_popup": "src/popup/index.html",
     "default_icon": {

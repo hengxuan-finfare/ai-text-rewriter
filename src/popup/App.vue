@@ -1,5 +1,13 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useAuth } from '../composables/useAuth'
+
+const { user, loading: authLoading, initAuth, signUp, signIn, signOut, getAccessToken } = useAuth()
+
+const isSignUp = ref(false)
+const email = ref('')
+const password = ref('')
+const authError = ref('')
 
 const inputText = ref('')
 const responseText = ref('')
@@ -8,7 +16,10 @@ const errorMessage = ref('')
 const selectedTone = ref('professional')
 
 const SUPABASE_URL = 'https://iwinuithcugihfsgepgo.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3aW51aXRoY3VnaWhmc2dlcGdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNjczNjgsImV4cCI6MjA3Njc0MzM2OH0.NOiIBFMjYfPCGmFfVakkgggeJjte8FY7UDISTS5OhP8' // Replace with your actual anon key
+
+onMounted(async () => {
+  await initAuth()
+})
 
 const MAX_LENGTH = 5000
 const MIN_LENGTH = 7
@@ -39,8 +50,61 @@ const copyToClipboard = async () => {
   }
 }
 
+const handleAuth = async () => {
+  if (!email.value || !password.value) {
+    authError.value = 'Please enter email and password'
+    return
+  }
+
+  try {
+    authError.value = ''
+    errorMessage.value = ''
+    
+    if (isSignUp.value) {
+      const { user: newUser } = await signUp(email.value, password.value)
+      if (newUser) {
+        authError.value = 'Account created! Please check your email to verify.'
+      }
+    } else {
+      await signIn(email.value, password.value)
+    }
+    
+    // Clear form
+    email.value = ''
+    password.value = ''
+  } catch (error) {
+    authError.value = error.message || (isSignUp.value ? 'Failed to sign up' : 'Failed to sign in')
+    console.error('Auth error:', error)
+  }
+}
+
+const toggleAuthMode = () => {
+  isSignUp.value = !isSignUp.value
+  authError.value = ''
+  email.value = ''
+  password.value = ''
+}
+
+const handleLogout = async () => {
+  try {
+    errorMessage.value = ''
+    await signOut()
+    responseText.value = ''
+    inputText.value = ''
+  } catch (error) {
+    errorMessage.value = 'Failed to sign out. Please try again.'
+    console.error('Logout error:', error)
+  }
+}
+
 const handleSend = async () => {
   if (!inputText.value.trim()) return
+
+  // Check if user is authenticated
+  if (!user.value) {
+    errorMessage.value = 'Please sign in to use this feature'
+    return
+  }
 
   // Validate length
   if (characterCount.value < MIN_LENGTH) {
@@ -58,15 +122,17 @@ const handleSend = async () => {
   responseText.value = ''
 
   try {
+    const accessToken = getAccessToken()
+    
     const response = await fetch(`${SUPABASE_URL}/functions/v1/rewrite-text`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
         requestText: inputText.value,
-        userId: null,
+        userId: user.value.id,
         tone: selectedTone.value,
       }),
     })
@@ -91,9 +157,58 @@ const handleSend = async () => {
   <div class="popup-container">
     <div class="header">
       <h1>Rewrite for Me</h1>
+      <div v-if="!authLoading && user" class="user-info">
+        <span class="user-email">{{ user.email }}</span>
+        <button @click="handleLogout" class="logout-button">Sign Out</button>
+      </div>
     </div>
 
-    <div class="input-section">
+    <!-- Loading Screen -->
+    <div v-if="authLoading" class="loading-section">
+      <div class="loading-spinner"></div>
+      <p>Loading...</p>
+    </div>
+
+    <!-- Login Screen -->
+    <div v-else-if="!user" class="login-section">
+      <div class="login-content">
+        <h2>{{ isSignUp ? 'Create Account' : 'Sign In' }}</h2>
+        <p>{{ isSignUp ? 'Sign up to start using the text rewriter' : 'Sign in to continue' }}</p>
+        
+        <form @submit.prevent="handleAuth" class="auth-form">
+          <input
+            v-model="email"
+            type="email"
+            placeholder="Email"
+            class="auth-input"
+            required
+          />
+          <input
+            v-model="password"
+            type="password"
+            placeholder="Password"
+            class="auth-input"
+            required
+            minlength="6"
+          />
+          
+          <div v-if="authError" class="auth-error">
+            {{ authError }}
+          </div>
+          
+          <button type="submit" class="auth-button">
+            {{ isSignUp ? 'Sign Up' : 'Sign In' }}
+          </button>
+        </form>
+        
+        <button @click="toggleAuthMode" class="toggle-auth">
+          {{ isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up" }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Main App (only shown when authenticated) -->
+    <div v-else class="input-section">
       <textarea v-model="inputText" placeholder="Enter text to rewrite..." rows="4" class="text-input"
         :class="{ 'input-error': isOverLimit, 'input-warning': isUnderLimit }" :maxlength="MAX_LENGTH + 100"></textarea>
 
@@ -162,12 +277,165 @@ const handleSend = async () => {
   background: #000000;
   color: #ffffff;
   padding: 20px;
-  text-align: center;
 }
 
 .header h1 {
   font-size: 20px;
   font-weight: 600;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.user-email {
+  color: #ffffff;
+  opacity: 0.9;
+}
+
+.logout-button {
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.loading-section {
+  padding: 60px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 16px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #000000;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-section p {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.login-section {
+  padding: 60px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.login-content {
+  text-align: center;
+  max-width: 300px;
+}
+
+.login-content h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #000000;
+  margin-bottom: 12px;
+}
+
+.login-content p {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: #000000;
+}
+
+.auth-error {
+  padding: 8px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #991b1b;
+  line-height: 1.4;
+}
+
+.auth-button {
+  width: 100%;
+  padding: 12px 24px;
+  background: #000000;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.auth-button:hover {
+  opacity: 0.9;
+}
+
+.toggle-auth {
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  color: #000000;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: opacity 0.2s;
+}
+
+.toggle-auth:hover {
+  opacity: 0.7;
 }
 
 .input-section {
