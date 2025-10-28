@@ -201,9 +201,9 @@ const handleSend = async () => {
           </button>
         </form>
         
-        <button @click="toggleAuthMode" class="toggle-auth">
-          {{ isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up" }}
-        </button>
+<!--        <button @click="toggleAuthMode" class="toggle-auth">-->
+<!--          {{ isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up" }}-->
+<!--        </button>-->
       </div>
     </div>
 
